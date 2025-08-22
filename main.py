@@ -4,7 +4,7 @@ from PIL import Image, ImageDraw, ImageFont
 OFFSET = 60
 IMAGE_WIDTH = 1280
 IMAGE_HEIGHT = 720
-CHANNEL_ID = 731223433043640341
+CHANNEL_ID = 1245842218879815833
 global did_win
 did_win = False
 
