@@ -5,5 +5,5 @@ include/
 lastmessage.id
 lib/
 lib64/
-pyenv.cfg
+pyvenv.cfg
 data/bossmusic/
