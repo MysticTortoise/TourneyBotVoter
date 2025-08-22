@@ -1,9 +1,2 @@
-attatchment.png
-bin/
-bot.token
-include/
-lastmessage.id
-lib/
-lib64/
-pyvenv.cfg
-data/bossmusic/
+# Created by venv; see https://docs.python.org/3/library/venv.html
+*

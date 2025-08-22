@@ -82,13 +82,16 @@ async def progress_tournament(name):
     with open(rootpath + "round" + str(round) + ".csv", "r", newline='') as round_data:
         roundlist = list(csv.reader(round_data))
     
-    if len(roundlist) <= match:
-        with open(rootpath + "info.ini", "w") as outfile:
-            outfile.write("[INFO]\nmatch=" + str(-1) + "\nround=" + str(round+1))
-        winners = list()
+
+    winners = list()
+    if os.path.exists(rootpath + "round" + str(round) + "wins.csl"):
         with open(rootpath + "round" + str(round) + "wins.csl", "r") as winsfile:
             text = winsfile.read()
             winners = text.split(",")[:-1]
+
+    if len(roundlist) <= match:
+        with open(rootpath + "info.ini", "w") as outfile:
+            outfile.write("[INFO]\nmatch=" + str(-1) + "\nround=" + str(round+1))
 
         if len(winners) == 1:
             print(winners)
@@ -96,7 +99,7 @@ async def progress_tournament(name):
             global did_win
             did_win = True
             generate_win_img(int(winners[0]))
-            return "👑" + song[0] + " | " + song[1] + "👑 has been crowned the BEST SONIC BOSS THEME EVERRRRRR!!!!\nThank you all for participating!!!!!"
+            return "👑 " + song[0] + " | " + song[1] + " 👑 has been crowned the BEST SONIC BOSS THEME EVERRRRRR!!!!\nThank you all for participating!!!!!"
 
         generate_tournament_matches(name, round+1, winners)
         return await progress_tournament(name)
@@ -104,13 +107,25 @@ async def progress_tournament(name):
     with open(rootpath + "info.ini", "w") as outfile:
         outfile.write("[INFO]\nmatch=" + str(match) + "\nround=" + str(round))
 
-    round = roundlist[match]
-    generate_img(round)
+    thisround = roundlist[match]
+    generate_img(thisround)
 
+    peopleLeft = (len(roundlist) - match) * 2 + len(winners)
     stringFormat = "Today's Competiton: \n"
-    stringFormat += ":red_circle: " + format_id_as_song(int(round[0]))
+    
+    if peopleLeft == 2:
+        stringFormat += "FINAL ROUND."
+    elif len(roundlist) <= 2 and peopleLeft <= 4:
+        stringFormat += "SEMI-FINALS"
+    else:
+        stringFormat += "Round " + str(round)
+
+    stringFormat += " - Match " + str(match+1) + "/" + str(len(roundlist))
+    stringFormat += " - " + str(peopleLeft) + " songs remain!\n"
+
+    stringFormat += ":red_circle: " + format_id_as_song(int(thisround[0]))
     stringFormat += "\n"
-    stringFormat += ":blue_circle: " + format_id_as_song(int(round[1]))
+    stringFormat += ":blue_circle: " + format_id_as_song(int(thisround[1]))
 
     return stringFormat
 
