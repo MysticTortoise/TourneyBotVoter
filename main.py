@@ -4,7 +4,9 @@ from PIL import Image, ImageDraw, ImageFont
 OFFSET = 60
 IMAGE_WIDTH = 1280
 IMAGE_HEIGHT = 720
-CHANNEL_ID = 731223433043640341
+
+CHANNEL_IDS = [731223433043640341, 773965055914016778]
+
 global did_win
 did_win = False
 
@@ -48,7 +50,6 @@ def format_game_as_filename(name):
 
 def generate_tournament_matches(name, roundNo, competitors):
     rootpath = "data/" + name + "/"
-    print(competitors)
 
     rounds = list()
     while len(competitors) > 1:
@@ -94,7 +95,6 @@ async def progress_tournament(name):
             outfile.write("[INFO]\nmatch=" + str(-1) + "\nround=" + str(round+1))
 
         if len(winners) == 1:
-            print(winners)
             song = songs[int(winners[0])]
             global did_win
             did_win = True
@@ -130,20 +130,33 @@ async def progress_tournament(name):
     return stringFormat
 
 async def check_results(name):
+    tosend = "Yesterday's Results:\n"
     todoEmoji = "🔴"
+    voters = [set(), set()]
+    msgIds = list()
     with open("lastmessage.id", "r") as id:
-        msg = await client.get_channel(CHANNEL_ID).fetch_message(int(id.read()))
-        countA = 0
-        countB = 0
+        msgIds = id.read().split(",")[:-1]
+
+    for i in range(0, len(msgIds)):
+        msg = await client.get_channel(CHANNEL_IDS[i]).fetch_message(int(msgIds[i]))
+
         for reaction in msg.reactions:
-            if reaction.emoji == "🔴":
-                countA = reaction.count
-            elif reaction.emoji == "🔵":
-                countB = reaction.count
-        if countA == countB:
-            whowon = bool(random.getrandbits(1))
-        else:
-            whowon = countB > countA
+            theset = voters[0]
+            if reaction.emoji == "🔵":
+                theset = voters[1]
+            async for user in reaction.users():
+                theset.add(user.id)
+        
+    
+    if len(voters[0]) == len(voters[1]):
+        whowon = bool(random.getrandbits(1))
+        tosend += "TIE! Chose Randomly!\n"
+    else:
+        whowon = len(voters[1]) > len(voters[0])
+        tosend += "🔴 " + str(len(voters[0])-1) + "\n"
+        tosend += "🔵 " + str(len(voters[1])-1) + "\n"
+        tosend += "Across " + str(len(CHANNEL_IDS)) + " servers!\n"
+    
     if whowon:
         todoEmoji = "🔵"
 
@@ -166,8 +179,9 @@ async def check_results(name):
         else:
             winnerID = currentRound[0]
         outfile.write(winnerID + ",")
-    tosend = "Yesterday's Results:\n" + todoEmoji + " " + songs[int(winnerID)][0] + " | " + songs[int(winnerID)][1] + " won!"
-    await client.get_channel(CHANNEL_ID).send(tosend)
+    tosend += todoEmoji + " " + songs[int(winnerID)][0] + " | " + songs[int(winnerID)][1] + " won!"
+    for channelID in CHANNEL_IDS:
+        await client.get_channel(channelID).send(tosend)
 
 def get_wrapped_text(text: str, font: ImageFont.ImageFont,
                      line_length: int):
@@ -245,22 +259,23 @@ elif sys.argv[1] == 'imgtest':
 
 class Client(discord.Client):
     async def on_ready(self):
-        channel = client.get_channel(CHANNEL_ID)
         tosend = await progress_tournament("bossmusic")
-        if len(tosend) != 0:
-            sent_message = await channel.send(tosend, file=discord.File("attatchment.png"))
-            if did_win:
-                exit(2)
-            await sent_message.add_reaction("\N{LARGE RED CIRCLE}")
-            await sent_message.add_reaction("\N{LARGE BLUE CIRCLE}")
-
-
-            with open("lastmessage.id", "w") as outfile:
-                outfile.write(str(sent_message.id))
+        with open("lastmessage.id", "w") as outfile:
+            
+            for channelid in CHANNEL_IDS:
+                channel = client.get_channel(channelid)
+                if len(tosend) != 0:
+                    sent_message = await channel.send(tosend, file=discord.File("attatchment.png"))
+                    if did_win:
+                        exit(2)
+                    await sent_message.add_reaction("\N{LARGE RED CIRCLE}")
+                    await sent_message.add_reaction("\N{LARGE BLUE CIRCLE}")
+                    outfile.write(str(sent_message.id) + ",")
+                else:
+                    print("FAIL")
+                    exit(-1)
             exit(1)
-        else:
-            print("FAIL")
-            exit(-1)
+        
     
 intents = discord.Intents.default()
 intents.message_content = True
